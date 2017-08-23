@@ -20,44 +20,51 @@ namespace Tfs2Trello.Trello
             _trelloConfig = trelloConfig;
             _trello = Ioc.Container.Resolve<ITrello>(new ParameterOverride("key", _trelloConfig.TrelloKey));
             _trello.Authorize(_trelloConfig.TrelloToken);
+            BoardId = new BoardId(trelloConfig.BoardId);
             _lists = GetLists();
             _members = GetMembers();
             _cards = new List<TfsCard>();
-            BoardId = new BoardId(trelloConfig.BoardId);
         }
 
-        public void AddOrUpdateCard(string listName, string name, string comment, string user, int id, Color workItemColor)
+        public void AddOrUpdateCard(string listName, string name, string desc, string user, int id, Color workItemColor)
         {
-            AddOrUpdateCard(listName, name, workItemColor, comment, user, id);
+            AddOrUpdateCard(listName, name, workItemColor, desc, user, id);
         }
 
         public void DeleteAll()
         {
-            var board = _trello.Boards.WithId(_trelloConfig.BoardId);
+            var board = BoardId;
             var allCards = _trello.Cards.ForBoard(board, BoardCardFilter.All);
             foreach (var card in allCards) {
                 _trello.Cards.Delete(card);
             }
         }
 
-        private void AddOrUpdateCard(string listName, string name, Color color, string comment, string user, int id)
+        private void AddOrUpdateCard(string listName, string name, Color color, string desc, string user, int id)
         {
             var username = _trelloConfig.GetTrelloUsername(user);
             if (_cards.Any(x => x.TfsId == id)) {
-                UpdateTask(name, color, comment, username, id, listName);
+                UpdateTask(name, color, desc, username, id, listName);
             }
             else {
-                AddTask(listName, name, id, username, color, comment);
+                AddTask(listName, name, id, username, color, desc);
             }
         }
 
-        private void AddTask(string listName, string name, int id, string username, Color color, string comment)
+        private void AddTask(string listName, string name, int id, string username, Color color, string desc)
+        {
+            if (_lists.ContainsKey(listName))
         {
             var card = _trello.Cards.Add(name, GetListIdByName(listName));
             Console.WriteLine("Added work item: {0}", name);
             var tfsCard = card.ToTfsCard(id, listName);
             _cards.Add(tfsCard);
-            SetValues(listName, name, username, color, comment, tfsCard);
+                SetValues(listName, name, username, color, desc, tfsCard);
+            }
+            else
+            {
+                Console.WriteLine("Invalid list '{0}', skipping work item: {1}", listName, name);
+            }
         }
 
         private void UpdateTask(string name, Color color, string comment, string user, int id, string listName)
@@ -73,7 +80,7 @@ namespace Tfs2Trello.Trello
             SetListName(listName, tfsCard);
             SetMember(username, tfsCard);
             SetLabel(color, tfsCard);
-            SetComment(comment, tfsCard);
+            SetDesc(comment, tfsCard);
         }
 
         private void SetName(string name, TfsCard card)
@@ -81,6 +88,12 @@ namespace Tfs2Trello.Trello
             if(card.Name == name) return;
             _trello.Cards.ChangeName(card, name);
             card.Name = name;
+        }
+        private void SetDesc(string desc, TfsCard card)
+        {
+            if (card.Name == desc) return;
+            _trello.Cards.ChangeDescription(card, desc);
+            card.Desc = desc;
         }
 
         private void SetListName(string listName, TfsCard card)
@@ -90,11 +103,10 @@ namespace Tfs2Trello.Trello
             card.ListName = listName;
         }
 
-        private void SetComment(string comment, TfsCard card)
+        private void AddComment(string comment, TfsCard card)
         {
-            if (string.IsNullOrEmpty(comment) || card.Desc == comment) return;
+            if (string.IsNullOrEmpty(comment)) return;
             _trello.Cards.AddComment(card, comment);
-            card.Desc = comment;
         }
 
         private void SetLabel(Color color, TfsCard card)
@@ -133,9 +145,7 @@ namespace Tfs2Trello.Trello
         private static IListId GetListIdByName(string listName)
         {
             if (!_lists.ContainsKey(listName)) {
-                Console.WriteLine("The names of the lists does not match the possible states of work items. ({0})", listName);
-                Console.ReadKey();
-                Environment.Exit(0);
+                listName = "Unknown";
             }
             return new ListId(_lists[listName]);
         }

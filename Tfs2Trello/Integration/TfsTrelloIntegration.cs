@@ -1,6 +1,8 @@
+using Html2Markdown;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Tfs2Trello.Tfs;
 using Tfs2Trello.Trello;
 using TrelloNet;
@@ -37,7 +39,10 @@ namespace Tfs2Trello.Integration
         {
             foreach (var tfsWorkItem in workItemsToChange) {
                 var itemColor = GetWorkItemTypeColor(tfsWorkItem.WorkItemTypeName);
-                _trelloClient.AddOrUpdateCard(tfsWorkItem.State, tfsWorkItem.Title, tfsWorkItem.Description, tfsWorkItem.AssignedTo, tfsWorkItem.Id, itemColor);
+                var converter = new Converter();
+                var description = converter.Convert(tfsWorkItem.Description);
+                Regex _htmlRegex = new Regex("<.*?>", RegexOptions.Compiled);
+                _trelloClient.AddOrUpdateCard(tfsWorkItem.State, tfsWorkItem.Title, _htmlRegex.Replace(description, string.Empty), tfsWorkItem.AssignedTo, tfsWorkItem.Id, itemColor);
             }
         }
 
