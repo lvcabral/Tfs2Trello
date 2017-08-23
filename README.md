@@ -23,5 +23,6 @@ Fork Notes
 ----------
 - The original code was adding the TFS Description as a Comment on the Trello Card, changed to save as Description
 - As TFS uses HTML to format the description and Trello Markdown, I added a component (and some regular expression) to convert and clean-up unsupported codes.
+- If a TFS state did not exist as a List the code will try to add to a list named "Unknown" if that also does not exist it will skip (show a console message) and continue to process items.
 
 Marcelo Lv Cabral
