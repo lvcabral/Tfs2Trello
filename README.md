@@ -18,3 +18,10 @@ See config.toml for how to get started. These are the fields you need to specify
 A big thank you to Trello.Net, RestSharp, Json.Net and toml-net for making this SO much easier - https://github.com/detroitpro/Trello.net
 
 For the time being, Trello list names are matched with TFS Work Item State names (Active, Resolved, Closed f.ex.). That means you will have to create Trello lists that correspond to the TFS states that are available on your project.
+
+Fork Notes
+----------
+- The original code was adding the TFS Description as a Comment on the Trello Card, changed to save as Description
+- As TFS uses HTML to format the description and Trello Markdown, I added a component (and some regular expression) to convert and clean-up unsupported codes.
+
+Marcelo Lv Cabral
